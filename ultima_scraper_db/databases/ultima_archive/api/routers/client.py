@@ -1,12 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
-from sqlalchemy import or_, orm, select, update
-from sqlalchemy.orm import contains_eager, lazyload, sessionmaker
+from fastapi import APIRouter, Request
 
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
-from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import (
-    FilePathModel,
-    JobModel,
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    get_ua_client,
 )
 
 router = APIRouter(
@@ -18,7 +13,7 @@ router = APIRouter(
 
 @router.get("/whoami/{identifier}")
 async def whoami(request: Request, identifier: int | str):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_management_api() as management_api:
         if isinstance(identifier, int):
             server = await management_api.get_server(

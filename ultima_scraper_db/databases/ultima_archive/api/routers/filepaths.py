@@ -1,13 +1,9 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel
-from sqlalchemy import or_, orm, select, update
-from sqlalchemy.orm import contains_eager, lazyload, sessionmaker
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
-from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import (
-    FilePathModel,
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    get_ua_client,
 )
 
 router = APIRouter(
@@ -19,7 +15,7 @@ router = APIRouter(
 
 @router.get("/")
 async def get_filepath(request: Request, site_name: str, media_id: int):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_site_api(site_name) as site_api:
         filepaths = await site_api.get_filepaths(media_id=media_id)
         return filepaths
@@ -29,7 +25,7 @@ async def get_filepath(request: Request, site_name: str, media_id: int):
 async def get_filepath_by_content_id(
     request: Request, site_name: str, content_type: str, content_id: int
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_site_api(site_name) as site_api:
         filepaths = await site_api.get_filepaths(post_id=content_id)
         for filepath in filepaths:

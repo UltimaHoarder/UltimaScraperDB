@@ -3,6 +3,11 @@ from pydantic import BaseModel
 
 from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
 from ultima_scraper_db.databases.ultima_archive.schemas.management import HostModel
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    UAClient,
+    get_ua_client,
+)
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 router = APIRouter(
     prefix="/hosts",
@@ -12,8 +17,10 @@ router = APIRouter(
 
 
 @router.get("/")
-async def get_hosts():
-    database_api = UAClient.database_api
+async def get_hosts(
+    request: Request,
+):
+    database_api = get_ua_client(request).database_api
 
     async with database_api.create_management_api() as management_api:
         hosts = await management_api.get_hosts()
@@ -29,8 +36,8 @@ class PyHost(BaseModel):
 
 
 @router.post("/create")
-async def create_host(response: Response, host: PyHost):
-    database_api = UAClient.database_api
+async def create_host(request: Request, host: PyHost):
+    database_api = get_ua_client(request).database_api
 
     async with database_api.create_management_api() as management_api:
         db_host = HostModel(

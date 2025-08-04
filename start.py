@@ -25,9 +25,6 @@ async def run(
     ultima_scraper_db.dev_mode = args.dev
     db_manager = DatabaseManager()
     db_config = config.settings.databases[0].connection_info.model_dump()
-    # alembica_path = (
-    #     Path("ultima_scraper_db/databases/ultima_archive").resolve().as_posix()
-    # )
     database = db_manager.create_database(
         **db_config, alembica=Alembica(ALEMBICA_PATH), metadata=merged_metadata
     )
@@ -49,5 +46,4 @@ async def run(
 if __name__ == "__main__":
     config = UltimaScraperCollectionConfig()
     config = config.load_or_create_default_config()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(config))
+    asyncio.run(run(config))

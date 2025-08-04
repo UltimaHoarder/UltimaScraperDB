@@ -1,14 +1,13 @@
 from typing import TYPE_CHECKING
 
+import redis.asyncio as _redis
 from fastapi import Request
 
-from ultima_scraper_db.databases.rest_api import RestAPI
 import ultima_scraper_db
-
-if TYPE_CHECKING:
-    from ultima_scraper_collection.config import UltimaScraperCollectionConfig
-
-    from ultima_scraper_db.databases.ultima_archive.database_api import ArchiveAPI
+from ultima_scraper_db import ALEMBICA_PATH
+from ultima_scraper_db.databases.rest_api import RestAPI
+from ultima_scraper_db.databases.ultima_archive import merged_metadata
+from ultima_scraper_db.managers.database_manager import Alembica, DatabaseManager
 
 
 def get_ua_client(request: Request) -> "UAClient":
@@ -16,12 +15,14 @@ def get_ua_client(request: Request) -> "UAClient":
 
 
 class UAClient(RestAPI):
-    database_api: "ArchiveAPI"
-    config: "UltimaScraperCollectionConfig"
+    redis = _redis.from_url("redis://localhost:6379")  # type: ignore
 
-    def __init__(self, database_api: "ArchiveAPI"):
+    def __init__(
+        self,
+    ):
 
-        UAClient.dev = ultima_scraper_db.dev_mode
+        from ultima_scraper_collection.config import UltimaScraperCollectionConfig
+
         from ultima_scraper_db.databases.ultima_archive.api.app import routers
 
         super().__init__(
@@ -29,19 +30,37 @@ class UAClient(RestAPI):
             proxy_headers=True,
         )
         self.include_routers(routers)
-        self.database_api = database_api
-        UAClient.database_api = self.database_api
 
-    async def init(self, config: "UltimaScraperCollectionConfig"):
+        config = UltimaScraperCollectionConfig()
+        self.config = config.load_or_create_default_config()
+
+        self.dev = ultima_scraper_db.dev_mode
+
+        # Register async startup hook
+        self.add_event_handler("startup", self.startup)  # type: ignore
+
+    async def startup(self):
         from ultima_scraper_collection.managers.datascraper_manager.datascraper_manager import (
             DataScraperManager,
         )
 
-        self.config = config
-        self.datascraper_manager = DataScraperManager(
-            self.database_api.server_manager, config
+        from ultima_scraper_db.databases.ultima_archive.database_api import ArchiveAPI
+        from ultima_scraper_db.managers.database_manager import (
+            Alembica,
+            DatabaseManager,
         )
-        return self
+
+        db_config = self.config.settings.databases[0].connection_info.model_dump()
+        db_manager = DatabaseManager()
+        database = db_manager.create_database(
+            **db_config, alembica=Alembica(ALEMBICA_PATH), metadata=merged_metadata
+        )
+        await database.init_db()
+        self.database_api = ArchiveAPI(database)
+
+        self.datascraper_manager = DataScraperManager(
+            self.database_api.server_manager, self.config
+        )
 
     def select_site_api(self, site_name: str):
         datascraper = self.datascraper_manager.find_datascraper(site_name)

@@ -5,7 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy import or_, orm, select, update
 from sqlalchemy.orm import contains_eager, lazyload, sessionmaker
 
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    UAClient,
+    get_ua_client,
+)
 from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import (
     MediaDetectionModel,
 )
@@ -19,6 +22,7 @@ router = APIRouter(
 
 @router.post("/")
 async def get_detected_media(
+    request: Request,
     filters: list[MediaDetectionModel.MediaDetectionFilter],
     site_name: str,
     user_id: int | None = None,
@@ -28,7 +32,7 @@ async def get_detected_media(
     category: str | None = None,
 ):
 
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_site_api(site_name) as site_api:
         stmt = MediaDetectionModel().filter_stmt(
             filters, sex, user_id=user_id, category=category

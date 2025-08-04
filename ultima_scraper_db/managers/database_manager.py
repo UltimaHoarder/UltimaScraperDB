@@ -13,7 +13,6 @@ from alembic.operations.ops import MigrationScript
 from alembic.runtime.environment import EnvironmentContext
 from alembic.script.base import ScriptDirectory
 from alembic.util import CommandError
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Connection, MetaData, inspect
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -159,8 +158,8 @@ class Database:
         engine = create_async_engine(
             connection_string,
             echo=self._echo,
-            pool_size=20,
-            max_overflow=5,
+            pool_size=50,
+            max_overflow=100,
             execution_options=execution_options,
         )
         return engine

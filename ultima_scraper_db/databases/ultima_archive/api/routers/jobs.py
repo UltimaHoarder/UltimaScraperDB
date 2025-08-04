@@ -3,8 +3,12 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import ScalarResult, Select, func, or_, select, update
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    UAClient,
+    get_ua_client,
+)
 from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import JobModel
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 restricted = (
     # lazyload(UserModel.user_auth_info),
@@ -73,19 +77,20 @@ class UpdateJob(BaseModel):
 
 @router.post("/")
 async def get_jobs(
+    request: Request,
     job_type: JobData,
     site_name: str,
     page: int = 1,
     limit: int = 100,
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
     site_api = database_api.get_site_api(site_name)
     async with site_api as site_api:
         # limit = 100 if limit > 100 else limit
         jobs = await site_api.get_jobs(
             server_id=job_type.server_id,
-            performer_id=job_type.performer_id,
+            performer_id=job_type.user_id,
             category=job_type.category,
             page=page,
             limit=limit,
@@ -96,9 +101,10 @@ async def get_jobs(
 
 @router.post("/create")
 async def create_job(
+    request: Request,
     job: JobData,
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
     site_api = database_api.get_site_api(job.site_name)
     async with site_api as site_api:
@@ -124,10 +130,11 @@ from datetime import datetime
 
 @router.post("/complete")
 async def complete_job(
+    request: Request,
     job_type: UpdateJob,
     site_name: str,
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
     site_api = database_api.get_site_api(site_name)
     async with site_api as site_api:
@@ -144,15 +151,18 @@ from fastapi import Query
 
 
 @router.post("/test")
-async def test(site_name: str, filepath_str: str = Query(alias="filepath")):
+async def test(
+    request: Request, site_name: str, filepath_str: str = Query(alias="filepath")
+):
     from pathlib import Path
 
     from ultima_scraper_collection.config import site_config_types
     from ultima_scraper_collection.managers.filesystem_manager import FilesystemManager
 
-    database_api = UAClient.database_api
+    ua_client = get_ua_client(request)
+    database_api = ua_client.database_api
 
-    config = UAClient.config
+    config = ua_client.config
     site_config: site_config_types = config.get_site_config(site_name=site_name)
     fsm = FilesystemManager()
     fsm.activate_directory_manager(site_config)
@@ -174,7 +184,7 @@ async def test(site_name: str, filepath_str: str = Query(alias="filepath")):
     async with site_db_api as site_db_api:
         db_filepaths = await site_db_api.get_filepaths(Path(filepath).name)
         performer_identifiers: list[int | str] = []
-
+        db_user = None
         for db_filepath in db_filepaths:
             db_content = await db_filepath.get_content()
             await db_content.awaitable_attrs.user
@@ -216,6 +226,10 @@ async def test(site_name: str, filepath_str: str = Query(alias="filepath")):
         if found_path:
             return found_path
         else:
+            if not db_user:
+                raise HTTPException(
+                    status_code=404, detail="No user found for the given filepath"
+                )
             performer_usernames = [
                 db_user.username,
                 *[x.username for x in db_user.aliases],
@@ -238,6 +252,7 @@ async def test(site_name: str, filepath_str: str = Query(alias="filepath")):
                         edited_filepath_2 = edited_filepath_2.replace(
                             found_username, performer_username
                         )
+                        assert directory.path, "Directory path is not set"
                         temp_path = Path(
                             directory.path,
                             site_name,

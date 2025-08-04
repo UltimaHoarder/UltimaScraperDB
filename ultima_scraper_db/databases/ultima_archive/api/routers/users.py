@@ -373,7 +373,7 @@ async def optimise_test(
 ):
     database_api = ua_client.database_api
     async with database_api.create_site_api(site_name) as site_db_api:
-        db_performer = await site_db_api.get_user(
+        _db_performer = await site_db_api.get_user(
             identifier, load_content=True, load_media=True
         )
         pass

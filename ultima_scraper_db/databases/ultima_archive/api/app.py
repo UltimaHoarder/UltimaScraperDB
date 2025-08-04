@@ -12,6 +12,8 @@ router_names = [
     "sites",
     "hosts",
     "search",
+    "files",
+    "media",
 ]
 
 for name in router_names:

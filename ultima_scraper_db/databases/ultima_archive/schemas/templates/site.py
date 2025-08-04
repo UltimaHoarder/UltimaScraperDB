@@ -74,6 +74,10 @@ standard_unique_constraints = (
     ),
 )
 from sqlalchemy import Index
+from sqlalchemy.exc import SAWarning
+import warnings
+
+warnings.filterwarnings("ignore", message=".*overlaps=.*", category=SAWarning)
 
 
 class UserModel(SiteTemplate):
@@ -521,6 +525,8 @@ class ContentMediaAssoModel(DefaultContentTypes, SiteTemplate):
         Index("ix_content_media_message_id", "message_id"),
         Index("ix_content_media_mass_message_id", "mass_message_id"),
         Index("ix_content_media_media_id", "media_id"),
+        Index("idx_content_media_post_media", "post_id", "media_id"),
+        Index("idx_content_media_message_media", "message_id", "media_id"),
     )
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     media: Mapped["MediaModel"] = relationship(
@@ -553,6 +559,13 @@ class ContentMediaAssoModel(DefaultContentTypes, SiteTemplate):
 
 class MediaModel(SiteTemplate):
     __tablename__ = "media"
+    __table_args__ = (
+        Index(
+            "idx_media_userid_url_not_null",
+            "user_id",
+            postgresql_where=text("url IS NOT NULL"),
+        ),
+    )
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     url: Mapped[str] = mapped_column(Text, nullable=True)
@@ -685,6 +698,14 @@ class LinkedUserModel(ContentTemplate):
 
 class PostModel(ContentTemplate):
     __tablename__ = "x_posts"
+    __table_args__ = (
+        Index(
+            "idx_posts_text_trgm",
+            "text",
+            postgresql_using="gin",
+            postgresql_ops={"text": "gin_trgm_ops"},
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
@@ -747,6 +768,15 @@ class PostModel(ContentTemplate):
 
 class MessageModel(ContentTemplate):
     __tablename__ = "x_messages"
+
+    __table_args__ = (
+        Index(
+            "idx_messages_text_trgm",
+            "text",
+            postgresql_using="gin",
+            postgresql_ops={"text": "gin_trgm_ops"},
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))

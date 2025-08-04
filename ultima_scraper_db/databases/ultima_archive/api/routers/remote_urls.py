@@ -3,7 +3,13 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    UAClient,
+    get_ua_client,
+)
+from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import (
+    RemoteURLModel,
+)
 
 router = APIRouter(
     prefix="/remote_urls",
@@ -27,7 +33,7 @@ class Performer(BaseModel):
 
 @router.get("/{site_name}/{user_id}")
 async def get_remote_urls(request: Request, site_name: str, user_id: int):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
     site_api = database_api.create_site_api(site_name)
     async with site_api as site_api:
@@ -41,7 +47,7 @@ async def update_remote_url(
     site_name: str,
     remote_url: RemoteURLData,
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
     site_api = database_api.create_site_api(site_name)
     async with site_api as site_api:
@@ -57,16 +63,16 @@ async def update_remote_url(
 
 @router.post("/bulk")
 async def get_remote_urls_bulk(request: Request, performers: list[Performer]):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
 
-    grouped_performers = {}
+    grouped_performers: dict[str, list[Performer]] = {}
     for performer in performers:
         site_name = performer.site_name
         if site_name not in grouped_performers:
             grouped_performers[site_name] = []
         grouped_performers[site_name].append(performer)
 
-    all_remote_urls = {}
+    all_remote_urls: dict[str, dict[int | str, list[RemoteURLModel]]] = {}
     for site_name, site_performers in grouped_performers.items():
         performer_ids = [int(performer.identifier) for performer in site_performers]
         site_api = database_api.create_site_api(site_name)

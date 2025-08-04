@@ -5,7 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy import or_, orm, select, update
 from sqlalchemy.orm import contains_eager, lazyload, sessionmaker
 
-from ultima_scraper_db.databases.ultima_archive.api.client import UAClient
+from ultima_scraper_db.databases.ultima_archive.api.client import (
+    UAClient,
+    get_ua_client,
+)
 from ultima_scraper_db.databases.ultima_archive.schemas.templates.site import (
     NotificationModel,
 )
@@ -25,7 +28,7 @@ async def get_notifications(
     page: int = 1,
     limit: int = 100,
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_site_api(site_name) as site_api:
         notifications = await site_api.get_notifications(
             notification_site, sent=False, page=page, limit=limit
@@ -37,7 +40,7 @@ async def get_notifications(
 async def complete_notification(
     request: Request, site_name: str, notification_site: str, notification_id: int
 ):
-    database_api = UAClient.database_api
+    database_api = get_ua_client(request).database_api
     async with database_api.create_site_api(site_name) as site_api:
         db_session = site_api.get_session()
         stmt = update(NotificationModel).where(NotificationModel.id == notification_id)
