@@ -151,3 +151,7 @@ __user_data__
 typings
 mp4decrypt
 ultima_scraper_db/databases/ultima_archive/alembic/versions/*
+
+# Legacy data
+old/
+

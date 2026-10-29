@@ -1,32 +1,48 @@
-[tool.poetry]
-name = "ultima-scraper-db"
-version = "0.4.21"
-description = ""
-authors = ["UltimaHoarder <1285176+UltimaHoarder@users.noreply.github.com>"]
-readme = "README.md"
-packages = [{ include = "ultima_scraper_db" }]
-include = ["ultima_scraper_db/py.typed"]
-
-[tool.poetry.dependencies]
-python = ">=3.10,<4"
-sqlalchemy = { extras = ["asyncio"], version = "^2.0.16" }
-asyncpg = "^0.30.0"
-psycopg = "^3.1.9"
-ultima-scraper-api = "^2.0.0"
-ultima-scraper-collection = "^2.0.0"
-sqlalchemy-utils = "^0.41.1"
-alembic = "^1.11.1"
-sshtunnel = "^0.4.0"
-fastapi = ">=0.100.0,<1.0.0"
-uvicorn = { extras = ["standard"], version = "^0.25.0" }
-fastapi-pagination = "^0.12.6"
-inflection = "^0.5.1"
-slowapi = "^0.1.9"
-platformdirs = "^4.2.2"
-alembic-postgresql-enum = "^1.7.0"
-gunicorn = "^23.0.0"
-redis = "^6.2.0"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ultima-scraper-db"
+version = "0.5.0"
+description = "Domain-neutral database runtime for UltimaScraper database modules"
+readme = "README.md"
+requires-python = ">=3.12,<4"
+license = { file = "LICENSE" }
+authors = [
+    { name = "UltimaHoarder", email = "1285176+UltimaHoarder@users.noreply.github.com" },
+]
+dependencies = [
+    "alembic>=1.17,<2",
+    "asyncpg>=0.30,<1",
+    "sqlalchemy[asyncio]>=2.0.44,<3",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14,<2",
+    "pytest>=8.2,<9",
+    "pytest-asyncio>=0.23,<2",
+    "ruff>=0.12,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["ultima_scraper_db"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/old"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
