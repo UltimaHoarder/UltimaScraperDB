@@ -10,13 +10,18 @@ readme = "README.md"
 requires-python = ">=3.12,<4"
 license = { file = "LICENSE" }
 authors = [
-    { name = "UltimaHoarder", email = "1285176+UltimaHoarder@users.noreply.github.com" },
+    { name = "UltimaHoarder", email = "21285176+UltimaHoarder@users.noreply.github.com" },
 ]
 dependencies = [
     "alembic>=1.17,<2",
     "asyncpg>=0.30,<1",
     "sqlalchemy[asyncio]>=2.0.44,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/DATAHOARDERS/UltimaScraperDB"
+Repository = "https://github.com/DATAHOARDERS/UltimaScraperDB"
+Issues = "https://github.com/DATAHOARDERS/UltimaScraperDB/issues"
 
 [dependency-groups]
 dev = [
