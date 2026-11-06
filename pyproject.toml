@@ -8,7 +8,7 @@ version = "0.5.0"
 description = "Domain-neutral database runtime for UltimaScraper database modules"
 readme = "README.md"
 requires-python = ">=3.12,<4"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-or-later"
 authors = [
     { name = "UltimaHoarder", email = "21285176+UltimaHoarder@users.noreply.github.com" },
 ]
